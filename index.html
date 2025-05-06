@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WB Board 12th Result - Check Details</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { /* Your Tailwind config (optional) */ }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 20px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .loader-container.hidden { display: none; }
+        #paymentSection.hidden { display: none; }
+        #razorpay-button-container { min-height: 50px; }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+
+    <div class="container bg-white p-6 sm:p-8 rounded-lg shadow-md w-full max-w-xl">
+        <h2 class="text-2xl sm:text-3xl font-bold text-center text-gray-800 mb-6">WBCHSE Class 12 - Check Details</h2>
+        <p class="text-center text-gray-600 mb-6 text-sm">Enter your Roll, No, and Registration Number to view basic details and proceed to payment for the full result.</p>
+
+        <form id="detailsForm" class="space-y-4 mb-6">
+            <div>
+                <label for="roll" class="block text-sm font-medium text-gray-700 mb-1">Roll (6 digits)</label>
+                <input type="text" id="roll" placeholder="Enter Roll" maxlength="6" required pattern="\d{6}" title="Roll must be 6 digits"
+                       class="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-base">
+            </div>
+            <div>
+                <label for="no" class="block text-sm font-medium text-gray-700 mb-1">No (4 digits)</label>
+                <input type="text" id="no" placeholder="Enter No" maxlength="4" required pattern="\d{4}" title="No must be 4 digits"
+                       class="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-base">
+            </div>
+            <div>
+                <label for="registration" class="block text-sm font-medium text-gray-700 mb-1">Registration Number</label>
+                <input type="text" id="registration" placeholder="Enter Registration No." required
+                       class="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-base">
+            </div>
+            <button type="submit"
+                    class="w-full inline-flex justify-center items-center px-6 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out">
+                Check Details
+            </button>
+        </form>
+
+        <div id="errorMsg" class="text-red-600 text-center font-medium mb-4 min-h-[1.5rem]"></div>
+
+        <div id="loaderContainer" class="loader-container hidden text-center mb-4">
+            <div class="loader"></div>
+            <p class="text-gray-600 mt-2">Loading Details...</p>
+        </div>
+
+        <div id="detailsResult" class="mt-6 space-y-4">
+        </div>
+
+        <div id="paymentSection" class="mt-6 text-center hidden border-t pt-6">
+             <h3 class="text-lg font-semibold text-gray-800 mb-3">Get Full Result</h3>
+             <p class="text-gray-600 mb-4 text-sm">To view your complete marksheet including subject scores and final status, please complete the payment.</p>
+             <div id="razorpay-button-container" class="mb-4">
+                 </div>
+             <div class="mt-5 p-4 bg-yellow-50 border-l-4 border-yellow-400 text-yellow-700 rounded-md text-sm" role="alert">
+                 <p class="font-medium">Important Payment Information:</p>
+                 <p>After successful payment, please **note down your Payment ID**. You will need this ID, along with your Roll, No, and Registration Number, to <a href="/full-result.html" class="font-semibold underline hover:text-yellow-800">view the full result here</a>.</p>
+                 <p class="mt-2 text-xs">Disclaimer: During payment, Razorpay may ask for your email address or phone number solely for the purpose of sending you the Payment ID and receipt. This contact information is handled directly by Razorpay according to their privacy policy and is not stored or managed by this website.</p>
+             </div>
+        </div>
+    </div>
+
+    <script>
+        const detailsForm = document.getElementById('detailsForm');
+        const rollInput = document.getElementById('roll');
+        const noInput = document.getElementById('no');
+        const registrationInput = document.getElementById('registration'); // New input element
+        const errorMsg = document.getElementById('errorMsg');
+        const loaderContainer = document.getElementById('loaderContainer');
+        const detailsResultContainer = document.getElementById('detailsResult');
+        const paymentSection = document.getElementById('paymentSection');
+        const razorpayButtonContainer = document.getElementById('razorpay-button-container');
+
+        function getReferralKey() {
+            const path = window.location.pathname.toLowerCase();
+            const parts = path.split('/').filter(part => part !== '');
+            if (parts.length === 1) {
+                return parts[0];
+            }
+            return null;
+        }
+
+        detailsForm.addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            const roll = rollInput.value.trim();
+            const no = noInput.value.trim();
+            const registration = registrationInput.value.trim(); // Get registration value
+            const referralKey = getReferralKey();
+
+            errorMsg.textContent = '';
+            detailsResultContainer.innerHTML = '';
+            razorpayButtonContainer.innerHTML = '';
+            paymentSection.classList.add('hidden');
+
+            if (!/^[0-9]{6}$/.test(roll)) {
+                errorMsg.textContent = 'Roll must be exactly 6 digits.';
+                rollInput.focus();
+                return;
+            }
+            if (!/^[0-9]{4}$/.test(no)) {
+                errorMsg.textContent = 'No must be exactly 4 digits.';
+                noInput.focus();
+                return;
+            }
+            if (!registration) { // Basic validation for registration number
+                errorMsg.textContent = 'Registration Number is required.';
+                registrationInput.focus();
+                return;
+            }
+
+            loaderContainer.classList.remove('hidden');
+
+            try {
+                const requestBody = { roll, no, registration }; // Add registration to request body
+                if (referralKey) {
+                    requestBody.referralKey = referralKey;
+                }
+
+                const response = await fetch('/api/details', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestBody),
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({
+                        message: `Error ${response.status}: ${response.statusText}. Please check your details or try again later.`
+                    }));
+                    throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                let resultHtml = `
+                    <div class="bg-gray-50 p-4 rounded-md shadow-sm border border-gray-200">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-3">Candidate Details Found</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                            <p><strong class="font-medium text-gray-600">Name:</strong> ${data.name || 'N/A'}</p>
+                            <p><strong class="font-medium text-gray-600">Roll No:</strong> ${data.rollNo || 'N/A'}</p>
+                            <p><strong class="font-medium text-gray-600">Registration No:</strong> ${data.regNo || 'N/A'}</p>
+                        </div>
+                    </div>`;
+                detailsResultContainer.innerHTML = resultHtml;
+
+                if (data.paymentButtonId) {
+                    const rzpForm = document.createElement('form');
+                    const rzpScript = document.createElement('script');
+                    rzpScript.src = "https://checkout.razorpay.com/v1/payment-button.js";
+                    rzpScript.setAttribute('data-payment_button_id', data.paymentButtonId);
+                    rzpScript.async = true;
+                    rzpForm.appendChild(rzpScript);
+                    razorpayButtonContainer.appendChild(rzpForm);
+                    paymentSection.classList.remove('hidden');
+                } else {
+                    console.warn("Payment Button ID not received from server.");
+                    errorMsg.textContent = (errorMsg.textContent ? errorMsg.textContent + " " : "") + "Payment option unavailable.";
+                }
+
+            } catch (err) {
+                console.error("Error fetching details:", err);
+                errorMsg.textContent = `Could not fetch details: ${err.message}`;
+                detailsResultContainer.innerHTML = '';
+                razorpayButtonContainer.innerHTML = '';
+                paymentSection.classList.add('hidden');
+            } finally {
+                loaderContainer.classList.add('hidden');
+            }
+        });
+    </script>
+
+</body>
+</html>

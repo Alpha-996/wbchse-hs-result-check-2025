@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WB Board 12th - View Full Result</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { /* Your Tailwind config (optional) */ }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 20px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .loader-container.hidden { display: none; }
+        .status-pass { color: #16a34a; } /* Tailwind green-600 */
+        .status-fail { color: #dc2626; } /* Tailwind red-600 */
+        .status-other { color: #ca8a04; } /* Tailwind yellow-600 */
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+
+    <div class="container bg-white p-6 sm:p-8 rounded-lg shadow-md w-full max-w-3xl">
+        <h2 class="text-2xl sm:text-3xl font-bold text-center text-gray-800 mb-6">WBCHSE Class 12 - Full Result</h2>
+        <p class="text-center text-gray-600 mb-6 text-sm">Enter your Payment ID/Email/Phone, Roll, No, and Registration Number to view the complete marksheet.</p>
+
+        <form id="fullResultForm" class="space-y-6 mb-6"> <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label for="identifier" class="block text-sm font-medium text-gray-700 mb-1">Payment ID / Email / Phone</label>
+                    <input type="text" id="identifier" placeholder="Enter ID, Email, or Phone" required
+                           class="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-base">
+                </div>
+                <div>
+                    <label for="roll" class="block text-sm font-medium text-gray-700 mb-1">Roll (6 digits)</label>
+                    <input type="text" id="roll" placeholder="Enter Roll" maxlength="6" required pattern="\d{6}" title="Roll must be 6 digits"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-base">
+                </div>
+                <div>
+                    <label for="no" class="block text-sm font-medium text-gray-700 mb-1">No (4 digits)</label>
+                    <input type="text" id="no" placeholder="Enter No" maxlength="4" required pattern="\d{4}" title="No must be 4 digits"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-base">
+                </div>
+                <div>
+                    <label for="registration" class="block text-sm font-medium text-gray-700 mb-1">Registration Number</label>
+                    <input type="text" id="registration" placeholder="Enter Registration No." required
+                           class="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-base">
+                </div>
+            </div>
+            <div class="flex justify-center pt-2"> <button type="submit"
+                        class="w-full sm:w-auto inline-flex justify-center items-center px-8 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out">
+                    Get Full Result
+                </button>
+            </div>
+        </form>
+
+        <div id="errorMsg" class="text-red-600 text-center font-medium mb-4 min-h-[1.5rem]"></div>
+
+        <div id="loaderContainer" class="loader-container hidden text-center mb-4">
+            <div class="loader"></div>
+            <p class="text-gray-600 mt-2">Verifying Details & Loading Result...</p>
+        </div>
+
+        <div id="result" class="mt-6 space-y-4">
+            <div id="candidateDetailsPlaceholder"></div>
+            <div id="subjectMarksContainer" class="overflow-x-auto mt-4" style="display: none;">
+                <h4 class="text-lg font-semibold text-gray-800 mb-3">Subject Marks</h4>
+                <table class="min-w-full divide-y divide-gray-200 border border-gray-200 rounded-md shadow-sm">
+                    <thead class="bg-gray-100">
+                        <tr>
+                            <th scope="col" class="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subject</th>
+                            <th scope="col" class="px-2 sm:px-4 py-2 sm:py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Theory</th>
+                            <th scope="col" class="px-2 sm:px-4 py-2 sm:py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Practical</th>
+                            <th scope="col" class="px-2 sm:px-4 py-2 sm:py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                            <th scope="col" class="px-2 sm:px-4 py-2 sm:py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Grade</th>
+                            <th scope="col" class="px-2 sm:px-4 py-2 sm:py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Percent</th>
+                        </tr>
+                    </thead>
+                    <tbody id="subjectMarksBody" class="bg-white divide-y divide-gray-200">
+                        </tbody>
+                </table>
+            </div>
+            <div id="finalSummaryPlaceholder"></div>
+        </div>
+
+        <div class="text-center mt-6">
+            <a href="/" class="text-indigo-600 hover:underline text-sm">&larr; Check another result</a>
+        </div>
+    </div>
+
+    <script>
+        const fullResultForm = document.getElementById('fullResultForm');
+        const identifierInput = document.getElementById('identifier');
+        const rollInput = document.getElementById('roll');
+        const noInput = document.getElementById('no');
+        const registrationInput = document.getElementById('registration'); // Get new registration input
+        const errorMsg = document.getElementById('errorMsg');
+        const loaderContainer = document.getElementById('loaderContainer');
+        const resultContainer = document.getElementById('result');
+        const candidateDetailsPlaceholder = document.getElementById('candidateDetailsPlaceholder');
+        const subjectMarksBody = document.getElementById('subjectMarksBody');
+        const finalSummaryPlaceholder = document.getElementById('finalSummaryPlaceholder');
+        const subjectMarksContainer = document.getElementById('subjectMarksContainer');
+
+        fullResultForm.addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            const identifier = identifierInput.value.trim();
+            const roll = rollInput.value.trim();
+            const no = noInput.value.trim();
+            const registration = registrationInput.value.trim(); // Read registration value
+
+            // Clear previous results and errors
+            errorMsg.textContent = '';
+            candidateDetailsPlaceholder.innerHTML = '';
+            subjectMarksBody.innerHTML = '';
+            finalSummaryPlaceholder.innerHTML = '';
+            subjectMarksContainer.style.display = 'none';
+
+            // Basic Frontend Validation
+            if (!identifier) {
+                errorMsg.textContent = 'Payment ID / Email / Phone cannot be empty.';
+                identifierInput.focus();
+                return;
+            }
+            if (!/^[0-9]{6}$/.test(roll)) {
+                errorMsg.textContent = 'Roll must be exactly 6 digits.';
+                rollInput.focus();
+                return;
+            }
+            if (!/^[0-9]{4}$/.test(no)) {
+                errorMsg.textContent = 'No must be exactly 4 digits.';
+                noInput.focus();
+                return;
+            }
+            // Validation for new Registration Number field
+            if (!registration) {
+                errorMsg.textContent = 'Registration Number is required.';
+                registrationInput.focus();
+                return;
+            }
+
+            loaderContainer.classList.remove('hidden');
+
+            try {
+                const response = await fetch('/api/full-result', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    // Include registration in the request body
+                    body: JSON.stringify({ identifier, roll, no, registration }),
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({
+                        message: `Error ${response.status}: ${response.statusText}`
+                    }));
+                    // Updated error message hint to include Registration Number
+                    if (response.status === 403 || response.status === 401) {
+                         throw new Error(errorData.message || 'Verification failed. Please check your Identifier, Roll, No, and Registration Number.');
+                    } else if (response.status === 404) {
+                        throw new Error(errorData.message || 'Result not found for the provided details.');
+                    } else {
+                        throw new Error(errorData.message || `Could not fetch result. Server responded with status ${response.status}.`);
+                    }
+                }
+
+                const data = await response.json();
+
+                if (!data || !data.name) { // Basic check for valid data structure
+                    throw new Error('Invalid data received from server.');
+                }
+
+                // 1. Candidate Details
+                const statusText = data.status || 'N/A';
+                let statusColorClass = 'status-other';
+                if (statusText.toLowerCase() === 'pass' || statusText.toLowerCase() === 'passed') {
+                    statusColorClass = 'status-pass';
+                } else if (statusText.toLowerCase() === 'fail' || statusText.toLowerCase() === 'failed') {
+                    statusColorClass = 'status-fail';
+                }
+                const candidateDetailsHtml = `
+                    <div class="bg-gray-50 p-4 rounded-md shadow-sm border border-gray-200">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-3">Candidate Details</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                            <p><strong class="font-medium text-gray-600">Name:</strong> ${data.name || 'N/A'}</p>
+                            <p><strong class="font-medium text-gray-600">Roll No:</strong> ${data.ROll_No || 'N/A'}</p>
+                            <p><strong class="font-medium text-gray-600">Registration No:</strong> ${data.Reg_No || 'N/A'}</p>
+                            <p><strong class="font-medium text-gray-600">Status:</strong> <span class="font-bold ${statusColorClass}">${statusText.toUpperCase()}</span></p>
+                        </div>
+                    </div>`;
+                candidateDetailsPlaceholder.innerHTML = candidateDetailsHtml;
+
+                // 2. Subject Marks Table Body
+                let subjectRowsHtml = '';
+                let hasSubjects = false;
+                for (let i = 1; i <= 7; i++) { // Assuming max 7 subjects based on existing loop
+                    const subjectCode = data[`sub_code${i}`]?.trim();
+                    if (subjectCode) {
+                        hasSubjects = true;
+                        subjectRowsHtml += `
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-2 sm:px-4 py-2 sm:py-3 whitespace-nowrap text-xs sm:text-sm font-medium text-gray-900">${subjectCode}</td>
+                                <td class="px-2 sm:px-4 py-2 sm:py-3 whitespace-nowrap text-xs sm:text-sm text-gray-600 text-center">${data[`thmarks${i}`] || '-'}</td>
+                                <td class="px-2 sm:px-4 py-2 sm:py-3 whitespace-nowrap text-xs sm:text-sm text-gray-600 text-center">${data[`prmarks${i}`] || '-'}</td>
+                                <td class="px-2 sm:px-4 py-2 sm:py-3 whitespace-nowrap text-xs sm:text-sm text-gray-600 text-center">${data[`totalmarks${i}`] || '-'}</td>
+                                <td class="px-2 sm:px-4 py-2 sm:py-3 whitespace-nowrap text-xs sm:text-sm text-gray-600 text-center">${data[`grade${i}`] || '-'}</td>
+                                <td class="px-2 sm:px-4 py-2 sm:py-3 whitespace-nowrap text-xs sm:text-sm text-gray-600 text-center">${data[`percent${i}`] ? data[`percent${i}`] + '%' : '-'}</td>
+                            </tr>`;
+                    }
+                }
+                subjectMarksBody.innerHTML = subjectRowsHtml;
+                if (hasSubjects) {
+                    subjectMarksContainer.style.display = 'block';
+                }
+
+                // 3. Final Summary
+                const finalSummaryHtml = `
+                    <div class="bg-indigo-50 p-4 rounded-md shadow-sm border border-indigo-200 mt-4">
+                        <h4 class="text-lg font-semibold text-gray-800 mb-3">Final Result Summary</h4>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm">
+                            <p><strong class="font-medium text-gray-600">Total Marks:</strong> ${data.totalMarks || 'N/A'}</p>
+                            <p><strong class="font-medium text-gray-600">Overall Grade:</strong> ${data.finalGrade || 'N/A'}</p>
+                            <p><strong class="font-medium text-gray-600">Percentile:</strong> ${data.totalPercent ? data.totalPercent + '%' : 'N/A'}</p>
+                        </div>
+                    </div>`;
+                finalSummaryPlaceholder.innerHTML = finalSummaryHtml;
+
+            } catch (err) {
+                console.error("Error fetching full result:", err);
+                errorMsg.textContent = `Error: ${err.message}`;
+                candidateDetailsPlaceholder.innerHTML = '';
+                subjectMarksBody.innerHTML = '';
+                finalSummaryPlaceholder.innerHTML = '';
+                subjectMarksContainer.style.display = 'none';
+            } finally {
+                loaderContainer.classList.add('hidden');
+            }
+        });
+    </script>
+
+</body>
+</html>
