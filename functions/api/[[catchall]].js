@@ -10,7 +10,7 @@ const BOARD_API_BASE_URL = 'https://boardresultapi.abplive.com/wb/2025/12'; // B
 // --- START: Referral Configuration (Moved to Backend) ---
 const referralButtonMap = {
     'subhra': 'pl_QRCx74QvShiAil', // Button ID for Subhra
-    'koyel': 'pl_QMWdxwIPVZYTpi',   // Button ID for Koyel
+    'koyel': 'pl_QRyQP1K2Jydj6f',   // Button ID for Koyel
     'anwesha': 'pl_QRfw57xno82GiV'   // Button ID for Anwesha
     // Add more friends here: 'friendname': 'button_id'
 };
